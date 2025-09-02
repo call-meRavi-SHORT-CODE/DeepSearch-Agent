@@ -13,6 +13,8 @@ from config import config
 from prompts import report_structure
 from prompts.report_structure import SYSTEM_PROMPT_REPORT_STRUCTURE
 from prompts.search_query import SYSTEM_PROMPT_SEARCH
+from prompts.reflect_agent import SYSTEM_PROMPT_REFLECTION
+from prompts.summarize import SYSTEM_PROMPT_SUMMARIZE
 from helper import remove_reasoning,clean_json,clean_markdown
 
 
@@ -123,4 +125,30 @@ class FirstSummaryAgent:
         return state
 
 
+# ReflectionAgent
+class ReflectionAgent:
 
+    def __init__(self):
+
+        self.openai_client = openai.OpenAI(
+            api_key=config.SAMBANOVA_API_KEY,
+            base_url=config.SAMBANOVA_BASE_URL
+        )
+
+    def run(self, message) -> str:
+
+        reason_response= self.openai_client.chat.completions.create(
+            model=config.LLM_REGULAR,
+            messages=[{"role": "system", "content": SYSTEM_PROMPT_REFLECTION},
+                      {"role":"user","content": message}]
+        )
+
+        response = remove_reasoning(reason_response.choices[0].message.content)
+        response = clean_json(response)
+        response = json.loads(response)
+
+        return response
+
+
+
+    
