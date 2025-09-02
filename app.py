@@ -1,154 +1,116 @@
-import os
-from httpx import Response
-import openai
-import json 
-from dataclasses import dataclass,field
-from typing import Any,List,Dict
-from tavily import TavilyClient
-from json.decoder import JSONDecodeError
-from pydantic_settings import BaseSettings
-#from IPython.display import display, Markdown
-
-from config import config
-from prompts import report_structure
-from prompts.report_structure import SYSTEM_PROMPT_REPORT_STRUCTURE
-from prompts.search_query import SYSTEM_PROMPT_SEARCH
-from prompts.reflect_agent import SYSTEM_PROMPT_REFLECTION
-from prompts.summarize import SYSTEM_PROMPT_SUMMARIZE
-from helper import remove_reasoning,clean_json,clean_markdown
-
-
-# Data Class ----> Sysytem Sate
-
-@dataclass
-class Search:
-    url: str = ""
-    content: str = ""
-
-
-@dataclass
-class Research:
-    search_history : List[Search] = field(default_factory=list)
-    latest_summary: str = ""
-    reflection_iteration : int = 0
-
-@dataclass
-class Paragraph:
-    title : str = ""
-    content : str = ""
-    research : Research = field(default_factory=Research)
-
-@dataclass
-class State:
-    report_title : str = ""
-    paragraphs : List[Paragraph] = field(default_factory=list)
+import json
+from tools import tavily_search,update_state_with_search_results
+from agents import State
+from agents import FirstSummaryAgent,ReflectionSummaryAgent,ReflectionAgent
+from agents import ReportStructureAgent,ReportFormattingAgent,FirstSearchAgent
+from IPython.display import Markdown
 
 
 
-#Report-Structure-Agent
+STATE = State()
+QUERY="Tell me something interesting about human species"
+NUM_REFLECTIONS = 2
+NUM_RESULTS_PER_SEARCH = 3
+CAP_SEARCH_LENGTH = 20000
 
-class ReportStructureAgent:
+report_structure_agent = ReportStructureAgent(QUERY)
 
-    # init objects [openai_client, query]
-    def __init__(self, query : str):
-        
-        self.openai_client = openai.OpenAI(
-            api_key=config.SAMBANOVA_API_KEY, 
-            base_url=config.SAMBANOVA_BASE_URL
-        )
-        self.query = query
+_ = report_structure_agent.mutate_state(STATE)
 
-    # run the agent
-    def run(self) -> str:
 
-        response = self.openai_client.chat.completions.create(
-            model=config.LLM_REASONING,
-            messages=[{"role": "system", "content": SYSTEM_PROMPT_REPORT_STRUCTURE},
-                      {"role":"user","content": self.query}]
-        )
-
-        return response.choices[0].message.content
-
-    # main
-    def mutate_state(self, state: State) -> State:
-
-        report_structure = self.run()
-
-        report = remove_reasoning(report_structure)
-        report = clean_json(report)
-
-        report = json.loads(report)
-
-        # update the state
-        for paragraphs in report:
-            state.paragraphs.append(Paragraph(title=paragraphs["title"],content=paragraphs["content"]))
-        
-        return state
+first_search_agent = FirstSearchAgent()
+first_summary_agent = FirstSummaryAgent()
+reflection_agent = ReflectionAgent()
+reflection_summary_agent = ReflectionSummaryAgent()
+report_formatting_agent = ReportFormattingAgent()
 
 
 
+print(f"Total Number of Paragraphs: {len(STATE.paragraphs)}")
+
+idx = 1
+
+for paragraph in STATE.paragraphs:
+
+    print(f"\nParagraph {idx}: {paragraph.title}")
+
+    idx += 1
+
+
+################## Iterate through paragraphs ##################
+
+for j in range(len(STATE.paragraphs)):
+
+    print(f"\n\n==============Paragraph: {j+1}==============\n")
+    print(f"=============={STATE.paragraphs[j].title}==============\n")
+
+    ################## First Search ##################
     
-# First Summary Agent
-class FirstSummaryAgent:
-
-    # llm init
-    def __init__(self):
-
-        self.openai_client = openai.OpenAI(
-            api_key=config.SAMBANOVA_API_KEY,
-            base_url=config.SAMBANOVA_BASE_URL
-        )
-
-    def run(self, message ) -> str:
-
-        response = self.openai_client.chat.completions.create(
-            model = config.LLM_REGULAR,
-            messages=[{"role": "system", "content": SYSTEM_PROMPT_SEARCH},
-                      {"role":"user","content": message}]
-        )
-        return response.choices[0].message.content
-
-    #main
-    def mutuate_state(self,message: str, idx: int, state: State) -> State:
-
-        search_summary =self.run(message)
-        summary = remove_reasoning(search_summary)
-        summary = clean_json(summary)
-
-        try:
-            summary = json.loads(summary)
-        except JSONDecodeError:
-            summary = {"paragraph_latest_state": summary}
-
-        state.paragraphs[idx].research.latest_summary = summary["paragraph_latest_state"]
-
-        return state
-
-
-# ReflectionAgent
-class ReflectionAgent:
-
-    def __init__(self):
-
-        self.openai_client = openai.OpenAI(
-            api_key=config.SAMBANOVA_API_KEY,
-            base_url=config.SAMBANOVA_BASE_URL
-        )
-
-    def run(self, message) -> str:
-
-        reason_response= self.openai_client.chat.completions.create(
-            model=config.LLM_REGULAR,
-            messages=[{"role": "system", "content": SYSTEM_PROMPT_REFLECTION},
-                      {"role":"user","content": message}]
-        )
-
-        response = remove_reasoning(reason_response.choices[0].message.content)
-        response = clean_json(response)
-        response = json.loads(response)
-
-        return response
-
-
-
+    message = json.dumps(
+        {
+            "title": STATE.paragraphs[j].title, 
+            "content": STATE.paragraphs[j].content
+        }
+    )
     
+    output = first_search_agent.run(message)
+    
+    search_results = tavily_search(output["search_query"], max_results=NUM_RESULTS_PER_SEARCH)
+    
+    _ = update_state_with_search_results(search_results, j, STATE)
+
+
+ ################## First Search Summary ##################
+    
+    message = {
+        "title": STATE.paragraphs[j].title,
+        "content": STATE.paragraphs[j].content,
+        "search_query": search_results["query"],
+        "search_results": [result["raw_content"][0:CAP_SEARCH_LENGTH] for result in search_results["results"] if result["raw_content"]]
+    }
+    
+    
+    _ = first_summary_agent.mutate_state(message=json.dumps(message), idx_paragraph=j, state=STATE)
+
+
+################## Run NUM_REFLECTIONS Reflection steps ##################
+    
+    for i in range(NUM_REFLECTIONS):
+    
+        print(f"Running reflection: {i+1}")
+
+        ################## Reflection Step ##################
+    
+        message = {"paragraph_latest_state": STATE.paragraphs[j].research.latest_summary,
+                "title": STATE.paragraphs[j].title,
+                "content": STATE.paragraphs[j].content}
+        
+        output = reflection_agent.run(message=json.dumps(message))
+
+        ################## Reflection Search ##################
+        
+        search_results = tavily_search(output["search_query"])
+        
+        _ = update_state_with_search_results(search_results, j, STATE)
+
+        ################## Reflection Search Summary ##################
+        
+        message = {
+            "title": STATE.paragraphs[j].title,
+            "content": STATE.paragraphs[j].content,
+            "search_query": search_results["query"],
+            "search_results": [result["raw_content"][0:20000] for result in search_results["results"] if result["raw_content"]],
+            "paragraph_latest_state": STATE.paragraphs[j].research.latest_summary
+        }
+        
+        _ = reflection_summary_agent.mutate_state(message=json.dumps(message), idx_paragraph=j, state=STATE)
+
+
+################## Generate Final Report ##################
+
+report_data = [{"title": paragraph.title, "paragraph_latest_state": paragraph.research.latest_summary} for paragraph in STATE.paragraphs]
+
+final_report = report_formatting_agent.run(json.dumps(report_data))
+
+
+print(Markdown(final_report))

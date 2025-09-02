@@ -3,7 +3,7 @@ from tavily import TavilyClient
 from config import config
 from app import Search
 
-def tavily_serach(query):
+def tavily_search(query):
     tavily_client = TavilyClient(api_key=config.TAVILY_API_KEY)
 
     return tavily_client.search(query,
