@@ -47,6 +47,14 @@ class State:
 
 
 
+
+
+def update_state_with_search_results(search_results, idx_paragraph, state):
+    
+    for search_result in search_results["results"]:
+        search = Search(url=search_result["url"], content=search_result["raw_content"])
+        state.paragraphs[idx_paragraph].research.search_history.append(search)
+
 #Report-Structure-Agent
 
 class ReportStructureAgent:
@@ -79,11 +87,23 @@ class ReportStructureAgent:
         report = remove_reasoning(report_structure)
         report = clean_json(report)
 
-        report = json.loads(report)
-
-        # update the state
-        for paragraphs in report:
-            state.paragraphs.append(Paragraph(title=paragraphs["title"],content=paragraphs["content"]))
+        try:
+            report = json.loads(report)
+            # Check if the expected structure exists
+            if isinstance(report, list):
+                # update the state
+                for paragraphs in report:
+                    if "title" in paragraphs and "content" in paragraphs:
+                        state.paragraphs.append(Paragraph(title=paragraphs["title"],content=paragraphs["content"]))
+                    else:
+                        # If the expected keys don't exist, create a default paragraph
+                        state.paragraphs.append(Paragraph(title="Unknown", content=str(paragraphs)))
+            else:
+                # If it's not a list, create a default paragraph
+                state.paragraphs.append(Paragraph(title="Unknown", content=str(report)))
+        except JSONDecodeError:
+            # If JSON parsing fails, create a default paragraph
+            state.paragraphs.append(Paragraph(title="Unknown", content=report))
         
         return state
 
@@ -108,10 +128,18 @@ class FirstSearchAgent:
 
         response = remove_reasoning(response.choices[0].message.content)
         response = clean_json(response)
-
-        response = json.loads(response)
-
-        return response
+        
+        try:
+            response = json.loads(response)
+            # Check if the expected key exists
+            if "search_query" in response:
+                return response
+            else:
+                # If the key doesn't exist, return a default structure
+                return {"search_query": str(response)}
+        except JSONDecodeError:
+            # If JSON parsing fails, return a default structure
+            return {"search_query": response}
 
 
     
@@ -136,7 +164,7 @@ class FirstSummaryAgent:
         return response.choices[0].message.content
 
     #main
-    def mutuate_state(self,message: str, idx: int, state: State) -> State:
+    def mutate_state(self,message: str, idx: int, state: State) -> State:
 
         search_summary =self.run(message)
         summary = remove_reasoning(search_summary)
@@ -144,10 +172,15 @@ class FirstSummaryAgent:
 
         try:
             summary = json.loads(summary)
+            # Check if the expected key exists
+            if "paragraph_latest_state" in summary:
+                state.paragraphs[idx].research.latest_summary = summary["paragraph_latest_state"]
+            else:
+                # If the key doesn't exist, use the raw summary text
+                state.paragraphs[idx].research.latest_summary = str(summary)
         except JSONDecodeError:
-            summary = {"paragraph_latest_state": summary}
-
-        state.paragraphs[idx].research.latest_summary = summary["paragraph_latest_state"]
+            # If JSON parsing fails, use the raw text
+            state.paragraphs[idx].research.latest_summary = summary
 
         return state
 
@@ -172,9 +205,18 @@ class ReflectionAgent:
 
         response = remove_reasoning(reason_response.choices[0].message.content)
         response = clean_json(response)
-        response = json.loads(response)
-
-        return response
+        
+        try:
+            response = json.loads(response)
+            # Check if the expected key exists
+            if "search_query" in response:
+                return response
+            else:
+                # If the key doesn't exist, return a default structure
+                return {"search_query": str(response)}
+        except JSONDecodeError:
+            # If JSON parsing fails, return a default structure
+            return {"search_query": response}
 
 
 # ReflectionSummaryAgent
@@ -196,7 +238,7 @@ class ReflectionSummaryAgent:
         )
         return response.choices[0].message.content
 
-    def mutuate_state(self,message: str, idx: int, state: State) -> State:
+    def mutate_state(self,message: str, idx: int, state: State) -> State:
 
         summary = self.run(message)
         summary = remove_reasoning(summary)
@@ -204,10 +246,15 @@ class ReflectionSummaryAgent:
 
         try:
             summary = json.loads(summary)
+            # Check if the expected key exists
+            if "updated_paragraph_latest_state" in summary:
+                state.paragraphs[idx].research.latest_summary = summary["updated_paragraph_latest_state"]
+            else:
+                # If the key doesn't exist, use the raw summary text
+                state.paragraphs[idx].research.latest_summary = str(summary)
         except JSONDecodeError:
-            summary = {"updated_paragraph_latest_state": summary}
-
-        state.paragraphs[idx].research.latest_summary = summary["updated_paragraph_latest_state"]
+            # If JSON parsing fails, use the raw text
+            state.paragraphs[idx].research.latest_summary = summary
 
         return state
 

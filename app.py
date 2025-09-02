@@ -1,9 +1,12 @@
 import json
-from tools import tavily_search,update_state_with_search_results
-from agents import State
+from agents import State, Search, update_state_with_search_results
 from agents import FirstSummaryAgent,ReflectionSummaryAgent,ReflectionAgent
 from agents import ReportStructureAgent,ReportFormattingAgent,FirstSearchAgent
 from IPython.display import Markdown
+from tavily import TavilyClient
+from config import config
+
+
 
 
 
@@ -24,6 +27,12 @@ reflection_agent = ReflectionAgent()
 reflection_summary_agent = ReflectionSummaryAgent()
 report_formatting_agent = ReportFormattingAgent()
 
+
+def tavily_search(query, include_raw_content=True, max_results=3):
+    tavily_client = TavilyClient(api_key=config.TAVILY_API_KEY)
+    return tavily_client.search(query,
+                                include_raw_content=include_raw_content,
+                                max_results=max_results)
 
 
 print(f"Total Number of Paragraphs: {len(STATE.paragraphs)}")
@@ -70,7 +79,7 @@ for j in range(len(STATE.paragraphs)):
     }
     
     
-    _ = first_summary_agent.mutate_state(message=json.dumps(message), idx_paragraph=j, state=STATE)
+    _ = first_summary_agent.mutate_state(message=json.dumps(message), idx=j, state=STATE)
 
 
 ################## Run NUM_REFLECTIONS Reflection steps ##################
@@ -103,7 +112,7 @@ for j in range(len(STATE.paragraphs)):
             "paragraph_latest_state": STATE.paragraphs[j].research.latest_summary
         }
         
-        _ = reflection_summary_agent.mutate_state(message=json.dumps(message), idx_paragraph=j, state=STATE)
+        _ = reflection_summary_agent.mutate_state(message=json.dumps(message), idx=j, state=STATE)
 
 
 ################## Generate Final Report ##################

@@ -1,6 +1,9 @@
 from pydantic_settings import BaseSettings
 import os
+from dotenv import load_dotenv
 
+# Load environment variables from .env file
+load_dotenv()
 
 class Config(BaseSettings):
     SAMBANOVA_API_KEY: str
