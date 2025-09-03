@@ -21,6 +21,6 @@ You will get the data in the following json format:
 </INPUT JSON SCHEMA>
 
 Your job is to format the Report nicely and return it in MarkDown.
-If Conclusion paragraph is not present, add it to the end of the report from the latest state of the other paragraphs.
+If Conclusion paragraph is not present, add it to the end of the report from the latest state of the other paragraphs and Ensure all the Paragraph content are present.
 Use titles of the paragraphs to create a title for the report.
 """

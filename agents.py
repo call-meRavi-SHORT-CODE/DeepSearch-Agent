@@ -96,7 +96,6 @@ class ReportStructureAgent:
                     if "title" in paragraphs and "content" in paragraphs:
                         state.paragraphs.append(Paragraph(title=paragraphs["title"],content=paragraphs["content"]))
                     else:
-                        # If the expected keys don't exist, create a default paragraph
                         state.paragraphs.append(Paragraph(title="Unknown", content=str(paragraphs)))
             else:
                 # If it's not a list, create a default paragraph
