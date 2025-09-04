@@ -1,3 +1,16 @@
+[![DeepSeek R1](https://img.shields.io/badge/LLM-DeepSeek%20R1-black?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxMDAgMTAwJz4KPHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIHJ4PSIxMiIgZmlsbD0iIzAwMDAwMDAwIi8+CjxjaXJjbGUgY3g9IjUwIiBjeT0iNTAiIHI9IjQ0IiBmaWxsPSIjZmZmZmZmIi8+Cjx0ZXh0IHg9IjUwIiB5PSI1MiIgZm9udC1mYW1pbHk9IlZlcmRhbmEsIEdlbmV2YSwgc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjcwIiBmb250LXNpemU9IjM2IiBmaWxsPSIjMGIwYjBiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EPC90ZXh0Pgo8dGV4dCB4PSI2OSIgeT0iNzgiIGZvbnQtZmFtaWx5PSJWZXJkYW5hLCBHZW5ldmEsIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI3MDAiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiMwYjBiMGIiPlIxPC90ZXh0Pgo8L3N2Zz4=)](https://deepseek.com)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-black?style=for-the-badge&logo=fastapi)](#)
+[![Next.js 14](https://img.shields.io/badge/Frontend-Next.js%2014-black?style=for-the-badge&logo=nextdotjs)](#)
+[![Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20CSS-black?style=for-t)](#)
+
+[![Tavily](https://img.shields.io/badge/Search-Tavily-black?style=for-the-badge)](https://tavily.com)
+![Python](https://img.shields.io/badge/Python-3.9%2B-black?style=for-the-badge&logo=python)
+![Node](https://img.shields.io/badge/Node.js-18%2B-black?style=for-the-badge&logo=node.js)
+[![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-black?style=for-the-badge&logo=github)](https://github.com/<your-org>/<your-repo>/pulls)
+
+
+
+
 # DeepVision Research AI Agent
 
 Advanced AI-powered deep research agent that conducts comprehensive analysis through multiple AI agents, web search integration, and iterative reflection cycles to generate detailed research reports.
@@ -366,4 +379,5 @@ When reporting issues, include:
 **Happy Researching! 🚀**
 
 *DeepVision - Where AI meets deep research*
+
 
